@@ -523,3 +523,98 @@ section.hero h1 span {
     transform: none;
   }
 }
+
+/* ============ مواعيد برامج اللياقة ============ */
+.day-pills {
+  display: flex;
+  gap: 8px;
+  margin-bottom: clamp(20px, 2.4vw, 32px);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.day-pills::-webkit-scrollbar {
+  display: none;
+}
+.day-pills button {
+  flex: none;
+  min-height: 46px;
+  padding: 0 22px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 700;
+}
+.day-pills button.is-on {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  color: #fff;
+}
+.slots {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(10px, 1.4vw, 20px);
+}
+.slot {
+  display: flex;
+  flex-direction: column;
+  padding: clamp(20px, 2.2vw, 32px);
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--accent);
+  border-radius: var(--radius-small);
+  background: var(--surface);
+}
+.slot h3 {
+  font-weight: 800;
+}
+.slot-time {
+  margin-block: 6px 2px;
+  color: var(--ink);
+  font-size: clamp(38px, 4vw, 60px);
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: start;
+}
+.slot-meta {
+  margin-bottom: 22px;
+  color: var(--muted);
+}
+.slot .btn {
+  margin-top: auto;
+}
+.btn:disabled {
+  background: var(--ghost-fill);
+  color: var(--muted);
+  cursor: not-allowed;
+  transform: none;
+}
+@media (max-width: 1000px) {
+  .slots {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 520px) {
+  .slots {
+    grid-template-columns: 1fr;
+  }
+  .slot {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 2px 12px;
+    padding: 16px 18px;
+  }
+  .slot-time {
+    grid-row: span 2;
+    margin: 0;
+    font-size: 30px;
+  }
+  .slot-meta {
+    margin: 0;
+    font-size: 0.9rem;
+  }
+  .slot .btn {
+    grid-column: 1 / -1;
+    margin-top: 12px;
+  }
+}

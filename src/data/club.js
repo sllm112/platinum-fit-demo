@@ -138,6 +138,15 @@ export const gallery = [
   { src: 'media/g-bike.jpg', alt: 'أجهزة الكارديو' },
 ];
 
+// تجريبي: مواعيد حصص اللياقة وأوقاتها وعدد المقاعد يحددها النادي من لوحة المالك.
+// time بصيغة 24 ساعة.
+export const classes = [
+  { id: 'dhuhr', title: 'موعد الظهر', time: '12:30', minutes: 60, capacity: 20 },
+  { id: 'asr', title: 'موعد العصر', time: '16:00', minutes: 60, capacity: 20 },
+  { id: 'maghrib', title: 'موعد المغرب', time: '18:15', minutes: 60, capacity: 20 },
+  { id: 'isha', title: 'موعد العشاء', time: '20:00', minutes: 60, capacity: 20 },
+];
+
 // نظام "جيب صاحبك": الخصم للطرفين، صاحب الكود واللي جابه.
 export const referral = {
   prefix: 'PLT',
@@ -171,6 +180,7 @@ export const nav = [
   { href: '#plans', label: 'الاشتراكات' },
   { href: '#about', label: 'النادي' },
   { href: '#programs', label: 'المرافق' },
+  { href: '#classes', label: 'المواعيد' },
   { href: '#gallery', label: 'الصور' },
   { href: '#contact', label: 'تواصل' },
 ];

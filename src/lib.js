@@ -46,6 +46,17 @@ export function giftLabel(plan) {
 export const planMonths = (plan) => plan.paid + (plan.gift || 0) + (plan.giftDays || 0) / 30;
 export const perMonth = (plan) => Math.round(plan.price / Math.max(planMonths(plan), 1));
 
+// '16:00' تصير '4:00 م'.
+export function time12(time) {
+  const [h, m] = String(time || '0:00').split(':').map(Number);
+  return `${h % 12 || 12}:${String(m || 0).padStart(2, '0')} ${h < 12 ? 'ص' : 'م'}`;
+}
+export function dayLabel(offset, date) {
+  if (offset === 0) return 'اليوم';
+  if (offset === 1) return 'بكرة';
+  return date.toLocaleDateString('ar-SA-u-nu-latn-ca-gregory', { weekday: 'long' });
+}
+
 // أسود أو أبيض، أيهما أوضح فوق اللون المعطى.
 export function readableOn(hex) {
   const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');

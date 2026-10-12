@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { clearLog, dayKey, invoiceTotals, seedDemo, useLog, useSite } from '../store.js';
+import { clearLog, dayKey, invoiceTotals, memberState, seedDemo, useLog, useSite } from '../store.js';
 import { money, Pills, when } from './ui.jsx';
 
 const periods = [
@@ -149,6 +149,11 @@ export default function Overview({ go }) {
   };
 
   const todo = [
+    {
+      id: 'members',
+      label: 'عضو قرب ينتهي اشتراكه',
+      count: log.subs.filter((s) => s.status === 'active' && !s.renewed && memberState(s) === 'soon').length,
+    },
     { id: 'subs', label: 'اشتراك ينتظر التفعيل', count: log.subs.filter((s) => s.status === 'new').length },
     { id: 'invoices', label: 'فاتورة غير مدفوعة', count: log.invoices.filter((i) => i.status === 'due').length },
     { id: 'leads', label: 'طلب تواصل بدون رد', count: log.leads.filter((l) => !l.done).length },

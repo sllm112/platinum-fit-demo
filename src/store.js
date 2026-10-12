@@ -5,7 +5,7 @@ import { useSyncExternalStore } from 'react';
 import * as defaults from './data/club.js';
 
 const SITE_KEY = 'plt.site.v1';
-const LOG_KEY = 'plt.log.v1';
+const LOG_KEY = 'plt.log.v2';
 
 const base = {
   club: defaults.club,
@@ -14,12 +14,13 @@ const base = {
   plans: defaults.plans,
   features: defaults.features,
   programs: defaults.programs,
+  classes: defaults.classes,
   gallery: defaults.gallery,
   referral: defaults.referral,
   reviews: defaults.reviews,
 };
 // days: عدد الزيارات لكل يوم بصيغة YYYY-MM-DD. demo: السجل مملوء ببيانات تجريبية.
-const emptyLog = { leads: [], codes: [], subs: [], invoices: [], clicks: {}, visits: 0, days: {}, demo: false };
+const emptyLog = { leads: [], codes: [], subs: [], invoices: [], bookings: [], clicks: {}, visits: 0, days: {}, demo: false };
 
 export const dayKey = (date) =>
   new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
@@ -194,6 +195,82 @@ export function removeSub(id) {
   setLog({ ...log, subs: log.subs.filter((s) => s.id !== id) });
 }
 
+/* ---------- سجل الأعضاء ----------
+   العضو هو صاحب اشتراك مفعّل. حالته تُحسب من تاريخ نهاية اشتراكه. */
+const DAY_MS = 86400000;
+export const SOON_DAYS = 14;
+export function subEnd(sub) {
+  const date = new Date(`${sub.start}T00:00:00`);
+  date.setMonth(date.getMonth() + (sub.months || 0));
+  date.setDate(date.getDate() + (sub.days || 0));
+  return date;
+}
+export const daysLeft = (sub) => Math.ceil((subEnd(sub).getTime() - Date.now()) / DAY_MS);
+// active ساري، soon قرب ينتهي، expired منتهي، frozen مجمّد.
+export function memberState(sub) {
+  if (sub.frozen) return 'frozen';
+  const left = daysLeft(sub);
+  if (left < 0) return 'expired';
+  return left <= SOON_DAYS ? 'soon' : 'active';
+}
+export function toggleFreeze(id) {
+  setLog({ ...log, subs: log.subs.map((s) => (s.id === id ? { ...s, frozen: !s.frozen } : s)) });
+}
+// التجديد: اشتراك جديد بنفس الباقة يبدأ من نهاية الحالي (أو من اليوم لو منتهي)، وتصدر فاتورته.
+export function renewSub(id) {
+  const old = log.subs.find((s) => s.id === id);
+  if (!old) return;
+  const plan = site.plans.find((p) => p.id === old.planId);
+  const end = subEnd(old);
+  const sub = {
+    ...old,
+    id: newId(),
+    no: 2001 + log.subs.length,
+    at: stamp(),
+    status: 'active',
+    frozen: false,
+    renewalOf: old.id,
+    plan: plan ? plan.title : old.plan,
+    price: plan ? Number(plan.price) || 0 : old.price,
+    months: plan ? plan.paid + (plan.gift || 0) : old.months,
+    days: plan ? plan.giftDays || 0 : old.days,
+    start: dayKey(end.getTime() > Date.now() ? end : new Date()),
+    code: '',
+    codeOk: false,
+  };
+  setLog({
+    ...log,
+    subs: [sub, ...log.subs.map((s) => (s.id === id ? { ...s, renewed: true } : s))],
+    invoices: [subInvoice(log.invoices, sub, sub.at), ...log.invoices],
+  });
+}
+
+/* ---------- حجوزات حصص اللياقة ---------- */
+export const seatsTaken = (bookings, slotId, date) =>
+  bookings.filter((b) => b.slotId === slotId && b.date === date).length;
+// يرجع 'ok' أو سبب الرفض: full المقاعد اكتملت، dup الرقم مسجل في نفس الموعد.
+export function addBooking(booking) {
+  const slot = site.classes.find((c) => c.id === booking.slotId);
+  if (!slot) return 'full';
+  const same = log.bookings.filter((b) => b.slotId === booking.slotId && b.date === booking.date);
+  if (same.some((b) => b.phone === booking.phone)) return 'dup';
+  if (same.length >= slot.capacity) return 'full';
+  setLog({
+    ...log,
+    bookings: [
+      { id: newId(), at: stamp(), attended: false, slot: slot.title, time: slot.time, ...booking },
+      ...log.bookings,
+    ],
+  });
+  return 'ok';
+}
+export function toggleAttended(id) {
+  setLog({ ...log, bookings: log.bookings.map((b) => (b.id === id ? { ...b, attended: !b.attended } : b)) });
+}
+export function removeBooking(id) {
+  setLog({ ...log, bookings: log.bookings.filter((b) => b.id !== id) });
+}
+
 // يملأ السجل بنشاط تجريبي لآخر 28 يوماً حتى تظهر اللوحة كما ستكون بعد التشغيل.
 // الأرقام والأسماء والفواتير مولّدة وليست بيانات حقيقية، واللوحة تعرض تنبيهاً بذلك.
 export function seedDemo() {
@@ -203,6 +280,9 @@ export function seedDemo() {
   // لحظة داخل الأسبوع (week) موزعة بالتساوي على عدد العناصر.
   const moment = (week, index, count) =>
     new Date(now - (week * 7 + ((index + 0.5) * 7) / count) * DAY);
+
+  let serial = 0;
+  const demoPhone = () => `0500${String(100001 + serial++)}`;
 
   const days = {};
   let visits = 0;
@@ -234,7 +314,7 @@ export function seedDemo() {
         at: date.toISOString(),
         done: week > 0 || i > 2,
         name: `عميل تجريبي ${leads.length + 1}`,
-        phone: '0500000000',
+        phone: demoPhone(),
         reason: reasons[(week + i) % reasons.length],
         note: '',
       });
@@ -253,8 +333,8 @@ export function seedDemo() {
         months: plan.paid,
         days: plan.giftDays || 0,
         start: dayKey(date),
-        name: `عميل تجريبي ${subs.length + 1}`,
-        phone: '0500000000',
+        name: `عضو تجريبي ${subs.length + 1}`,
+        phone: demoPhone(),
         code: '',
         codeOk: false,
         pay: i % 2 ? 'online' : 'club',
@@ -271,12 +351,63 @@ export function seedDemo() {
         at: date.toISOString(),
         status: week === 0 && i === 0 ? 'due' : 'paid',
         name: `عميل تجريبي ${40 + drafts.length}`,
-        phone: '0500000000',
+        phone: demoPhone(),
         pay: 'club',
         items: [{ name: extra.name, qty: 1, price: extra.price }],
       });
     }
   }
+
+  // أعضاء قدامى حتى يظهر في سجل الأعضاء من قرب ينتهي ومن انتهى ومن هو مجمّد.
+  // [قبل كم يوم اشترك، رقم الباقة]
+  const veterans = [[300, 0], [150, 1], [200, 1], [100, 2], [97, 2], [58, 3], [64, 3], [45, 4], [70, 4]];
+  veterans.forEach(([ago, planIndex], i) => {
+    if (!plans.length) return;
+    const plan = plans[planIndex % plans.length];
+    const date = new Date(now - ago * DAY);
+    const sub = {
+      id: newId(),
+      no: 1901 + i,
+      at: date.toISOString(),
+      status: 'active',
+      frozen: i === 1,
+      planId: plan.id,
+      plan: plan.title,
+      price: Number(plan.price) || 0,
+      months: plan.paid,
+      days: plan.giftDays || 0,
+      start: dayKey(date),
+      name: `عضو تجريبي ${60 + i}`,
+      phone: demoPhone(),
+      code: '',
+      codeOk: false,
+      pay: i % 2 ? 'online' : 'club',
+    };
+    subs.push(sub);
+    drafts.push({ sub, at: sub.at, status: 'paid' });
+  });
+
+  // حجوزات حصص اليوم وبكرة.
+  const bookings = [];
+  [0, 1].forEach((offset) => {
+    const date = dayKey(new Date(now + offset * DAY));
+    site.classes.forEach((slot, s) => {
+      const count = Math.min(slot.capacity, [6, 11, 17, 9][s % 4] - offset * 3);
+      for (let i = 0; i < count; i++) {
+        bookings.push({
+          id: newId(),
+          at: new Date(now - (i + 1) * 3600000).toISOString(),
+          attended: false,
+          slotId: slot.id,
+          slot: slot.title,
+          time: slot.time,
+          date,
+          name: `عضو تجريبي ${100 + bookings.length}`,
+          phone: demoPhone(),
+        });
+      }
+    });
+  });
 
   drafts.sort((a, b) => new Date(a.at) - new Date(b.at));
   const invoices = [];
@@ -292,14 +423,14 @@ export function seedDemo() {
   plans.forEach((plan, i) => {
     clicks[plan.id] = [41, 27, 19, 9, 14][i % 5];
   });
-  setLog({ ...emptyLog, leads, subs, invoices, days, visits, clicks, demo: true });
+  setLog({ ...emptyLog, leads, subs, invoices, bookings, days, visits, clicks, demo: true });
 }
 
 // نسخة العرض: أول فتح على أي جهاز يحمّل البيانات التجريبية مرة واحدة،
 // حتى تظهر اللوحة والفواتير مليانة بدون أي ضغطة. يُحذف هذا عند التشغيل الفعلي.
 try {
-  if (!localStorage.getItem('plt.seeded')) {
-    localStorage.setItem('plt.seeded', '1');
+  if (!localStorage.getItem('plt.seeded2')) {
+    localStorage.setItem('plt.seeded2', '1');
     if (log.subs.length + log.invoices.length + log.leads.length === 0) seedDemo();
   }
 } catch {

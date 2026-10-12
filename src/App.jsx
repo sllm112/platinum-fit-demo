@@ -7,6 +7,7 @@ import Header from './components/Header.jsx';
 import Hero from './components/Hero.jsx';
 import About from './components/About.jsx';
 import Programs from './components/Programs.jsx';
+import Classes from './components/Classes.jsx';
 import Gallery from './components/Gallery.jsx';
 import Plans from './components/Plans.jsx';
 import Reviews from './components/Reviews.jsx';
@@ -58,6 +59,7 @@ function Site() {
         <Plans />
         <About />
         <Programs />
+        <Classes />
         <Gallery />
         <Reviews />
         <Contact />

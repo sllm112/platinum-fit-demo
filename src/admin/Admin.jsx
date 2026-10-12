@@ -5,6 +5,8 @@ import { Confirm } from './ui.jsx';
 import Overview from './Overview.jsx';
 import { Codes, Leads, Subs } from './Lists.jsx';
 import Invoices from './Invoices.jsx';
+import Members from './Members.jsx';
+import { Bookings, ClassesEditor } from './Classes.jsx';
 import { ClubEditor, ContentEditor, PlansEditor } from './Editors.jsx';
 
 const groups = [
@@ -12,6 +14,8 @@ const groups = [
     label: 'المتابعة',
     items: [
       { id: 'overview', label: 'نظرة عامة', view: Overview },
+      { id: 'members', label: 'سجل الأعضاء', view: Members },
+      { id: 'bookings', label: 'حجوزات الحصص', view: Bookings },
       { id: 'subs', label: 'طلبات الاشتراك', view: Subs },
       { id: 'invoices', label: 'الفواتير', view: Invoices },
       { id: 'leads', label: 'طلبات التواصل', view: Leads },
@@ -22,6 +26,7 @@ const groups = [
     label: 'التعديل',
     items: [
       { id: 'plans', label: 'الاشتراكات', view: PlansEditor },
+      { id: 'classes', label: 'مواعيد الحصص', view: ClassesEditor },
       { id: 'club', label: 'بيانات النادي', view: ClubEditor },
       { id: 'content', label: 'المحتوى', view: ContentEditor },
     ],
